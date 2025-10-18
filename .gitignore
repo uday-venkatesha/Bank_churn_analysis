@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data files
+data/
+*.csv
+*.xlsx
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.sql~
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment variables
+.env
+config.ini
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
