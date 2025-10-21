@@ -8,13 +8,16 @@ import numpy as np
 from datetime import datetime, timedelta
 import psycopg2
 from scipy import stats
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Database connection parameters
 DB_PARAMS = {
-    'host': 'localhost',
-    'database': 'pnc_banking',
-    'user': 'postgres',
-    'password': 'your_password_here'
+    'host': os.getenv("host"),
+    'database': os.getenv("database"),
+    'user': os.getenv("user"),
+    'password': os.getenv("password")
 }
 
 
@@ -285,33 +288,54 @@ class BankingFeatureEngineer:
     
     def _create_rfm_features(self):
         """
-        Recency, Frequency, Monetary features (key for segmentation)
-        """
-        # Recency: Days since customer joined (already have tenure)
-        self.df['recency_score'] = pd.qcut(
+    Recency, Frequency, Monetary features (key for segmentation)
+    with safe handling for limited unique values
+    """
+        def safe_qcut(series, q=5, ascending=True):
+            """Safe quantile cut with dynamic bins."""
+            # Drop NA and get unique count
+            valid = series.dropna()
+            if valid.nunique() < 2:
+                # Not enough unique values to bin — assign mid score
+                return pd.Series([3] * len(series), index=series.index)
+            
+            num_bins = min(valid.nunique(), q)
+            try:
+                labels = list(range(1, num_bins + 1))
+                result = pd.qcut(valid.rank(method='first'), q=num_bins,
+                                labels=labels, duplicates='drop')
+                if not ascending:
+                    result = result.map(lambda x: num_bins + 1 - int(x))
+                return result.reindex(series.index, fill_value=3).astype(int)
+            except Exception:
+                return pd.Series([3] * len(series), index=series.index)
+    
+    # Recency: Days since customer joined (already have tenure)
+        self.df['recency_score'] = safe_qcut(
             self.df['tenure_days'],
             q=5,
-            labels=[5, 4, 3, 2, 1],  # More recent = higher score
-            duplicates='drop'
-        ).astype(int)
-        
-        # Frequency: Number of accounts (proxy for engagement)
+            ascending=False  # more recent = higher score
+        )
+    
+    # Frequency: Number of accounts (proxy for engagement)
         if 'num_accounts' in self.df.columns:
-            self.df['frequency_score'] = pd.qcut(
+            self.df['frequency_score'] = safe_qcut(
                 self.df['num_accounts'],
                 q=5,
-                labels=[1, 2, 3, 4, 5],
-                duplicates='drop'
-            ).astype(int)
+                ascending=True
+            )
+        else:
+            self.df['frequency_score'] = 3
         
         # Monetary: Total balance
         if 'total_balance' in self.df.columns:
-            self.df['monetary_score'] = pd.qcut(
+            self.df['monetary_score'] = safe_qcut(
                 self.df['total_balance'],
                 q=5,
-                labels=[1, 2, 3, 4, 5],
-                duplicates='drop'
-            ).astype(int)
+                ascending=True
+            )
+        else:
+            self.df['monetary_score'] = 3
         
         # RFM composite score
         if all(col in self.df.columns for col in ['recency_score', 'frequency_score', 'monetary_score']):
@@ -325,6 +349,7 @@ class BankingFeatureEngineer:
             self.df['rfm_segment'] = self.df['rfm_score'].apply(self._assign_rfm_segment)
         
         print(f"   ✓ Created {5} RFM features")
+
     
     def _assign_rfm_segment(self, score):
         """Assign customer segment based on RFM score"""
