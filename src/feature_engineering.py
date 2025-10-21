@@ -204,7 +204,7 @@ class BankingFeatureEngineer:
         if relationship_components:
             self.df['relationship_depth_score'] = sum(relationship_components)
         
-        print(f"   ✓ Created {10+} relationship features")
+        print(f"   ✓ Created 10 relationship features")
     
     def _create_behavioral_features(self):
         """
@@ -235,7 +235,7 @@ class BankingFeatureEngineer:
             gender_dummies = pd.get_dummies(self.df['gender'], prefix='gender')
             self.df = pd.concat([self.df, gender_dummies], axis=1)
         
-        print(f"   ✓ Created {8+} behavioral features")
+        print(f"   ✓ Created 8 behavioral features")
     
     def _create_risk_features(self):
         """
@@ -281,7 +281,7 @@ class BankingFeatureEngineer:
                 labels=['low_risk', 'medium_risk', 'high_risk', 'very_high_risk']
             )
         
-        print(f"   ✓ Created {10+} risk features")
+        print("   ✓ Created risk features")
     
     def _create_rfm_features(self):
         """
